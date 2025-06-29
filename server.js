@@ -12,6 +12,30 @@ const PORT = process.env.PORT || 3000;
 // Middleware setup
 app.use(bodyParser.json());
 
+// TODO: Implement custom middleware for:
+// - Request logging
+app.use((req, res , next) => {
+  const now = new Date().toISOString();
+  const method = req.method;
+  const path = req.originalUrl;
+
+  console.log(`[${now}] ${method} ${path}`);
+  next();
+});
+// - Authentication
+const Auth_Token = 'OpenCell50';
+app.use((req, res, next) => {
+  const authHeader = req.headers['authorization'];
+
+  if (!authHeader || authHeader !== `Bearer ${Auth_Token}`){
+    return res.status(401).json({
+      message: 'Unauthorised: Invalid or missing token'
+    });
+  }
+  next();
+});
+
+
 
 // Sample in-memory products database
 let products = [
@@ -78,6 +102,7 @@ app.get('/', (req, res) => {
   res.send('Welcome to the Product API! Go to /api/products to see all products.');
 });
 
+
 // TODO: Implement the following routes:
 // GET /api/products - Get all products
 app.get('/api/products',(req,res) => {
@@ -85,13 +110,14 @@ app.get('/api/products',(req,res) => {
 });
 
 // GET /api/products/:id - Get a specific product
-app.get('/api/products/:id', (req, res) => {
+app.get('/api/products/:id', (req, res, next) => {
   const { id } = req.params; 
   const product = products.find(p => p.id === id);
 
   if (!product){
-    return res.status(404).json({
-      message: `product with ID ${id} not found.`});
+    const err = new Error(`Product with ID ${id} not found`);
+    err.status = 404;
+    return next(err);
   }
 
   res.json(product);
@@ -159,10 +185,16 @@ app.delete('/api/products/:id',(req, res) => {
     deleted: deletedProduct
   });
 });
-// TODO: Implement custom middleware for:
-// - Request logging
-// - Authentication
-// - Error handling
+
+app.use((err, req, res,next) => {
+  console.error(err.stack);
+
+  res.status(err.status ||500).json({
+    error: {
+      message: err.message || 'Something went wrong',
+    }
+  });
+});
 
 // Start the server
 app.listen(PORT, () => {
