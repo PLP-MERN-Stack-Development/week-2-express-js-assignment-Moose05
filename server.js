@@ -63,6 +63,14 @@ let products = [
     category: 'electronics',
     inStock: true
   },
+  {
+    id: '7',
+    name: '128GB SSD',
+    description: '128GB SSD with 6Gbps write speeds',
+    price: 200,
+    category: 'electronics',
+    inStock: true
+  },
 ];
 
 // Root route
@@ -91,12 +99,11 @@ app.get('/api/products/:id', (req, res) => {
 
 // POST /api/products - Create a new product
 app.post('/api/products', (req, res) => {
-  const {name, description,price,category,inStock} = req.body;
+  const { name, description, price, category, inStock} = req.body;
 
   if (!name || !price || !category){
     return res.status(400).json({message:
-    'Name, price, and category are required.'}
-  );
+    'Name, price, and category are required.'});
   }
   const newProduct ={
     id: uuidv4(),
@@ -106,11 +113,52 @@ app.post('/api/products', (req, res) => {
     category,
     inStock: inStock ?? true
   };
+
 products.push(newProduct);
 res.status(201).json(newProduct);
 });
+
 // PUT /api/products/:id - Update a product
+app.put('/api/products/:id', (req, res) =>{
+  const { id } = req.params;
+  const { name, description, price, category, inStock} = req.body;
+
+  const index = products.findIndex(p => p.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({
+      message: `Product with ID ${ID} not found.`
+    });
+  }
+
+  const existingProduct = products[index];
+
+  products[index] ={
+    ...existingProduct,
+    name: name ?? existingProduct.name,
+    description: description ?? existingProduct.description,
+    price: price ?? existingProduct.price,
+    category: category ?? existingProduct.category,
+    inStock: inStock ?? existingProduct.inStock
+  };
+  res.json(products[index]);
+});
 // DELETE /api/products/:id - Delete a product
+app.delete('/api/products/:id',(req, res) => {
+  const { id } = req.params;
+  const index = products.findIndex(p => p.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({
+      message: `Product with ID ${id} not found`
+    });
+  }
+  const deletedProduct = products.splice(index, 1)[0];
+  res.json({
+    message: `Product with ID ${id} has been deleted`,
+    deleted: deletedProduct
+  });
+});
 // TODO: Implement custom middleware for:
 // - Request logging
 // - Authentication
